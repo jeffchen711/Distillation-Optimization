@@ -1,0 +1,53 @@
+(*parameters*)
+Clear[q, alpha, zf, xd, xb, baseline, VLE, feedline, LOverV, yint, \
+enrichingline, xintersection, yintersection, strippingline, s, r, x1, \
+x2, y1]
+alpha = 1.7;
+zf = 0.6;
+xd = 0.8143;
+xb = 0.1;
+baseline = x;
+VLE = alpha*x/((alpha - 1)*x + 1);
+feedline = (-q/(1 - q))*x + zf/(1 - q);
+
+q = 0.5;
+Rmin = -0.3297 q^6 + 0.4896 q^5 + 0.0707 q^4 - 0.374 q^3 + 
+   0.2698 q^2 - 0.9485 q + 1.6321;
+R = Rmin*1.25;
+
+(*Do[Print[Rmin=-0.3297q^6+0.4896q^5+0.0707q^4-0.374q^3+0.2698q^2-0.\
+9485q+1.6321],{q,0,1,0.001}];*)
+
+
+LOverV = R/(R + 1); (*R should increment from R to 1.25*R*)
+yIntersect = xd*(1 - LOverV);
+ENRICHING_LINE = ((xd - yint)/xd)*x + yint;
+
+																	
+s = NSolve[feedline == enrichingline, x];
+xCollision = s[[All, 1, 2]]; //x-coord of intersection on feed line
+yCollision = (-q/(1 - q))*xintersection + zf/(1 - q);
+STRIPPING_LINE = ((xb - yintersection)/(xb - xintersection))*x + xb - ((xb - yintersection)/(xb - xintersection))*xb;
+
+
+
+r = NSolve[xd == alpha*x/((alpha - 1)*x + 1), x];
+x1 = r[[All, 1, 2]];
+y1 = ((xd - yint)/xd)*x1 + yint;
+w = NSolve[y1 == alpha*x/((alpha - 1)*x + 1), x];
+x2 = w[[All, 1, 2]];
+(*repeat until x# is less than or equal to xintersection, the \
+increments of y and x will be known as y and x "number"*)
+
+(*ynumber=((xb-yintersection)/(xb-xintersection))*xnumber+xb-((xb-\
+yintersection)/(xb-xintersection))*xb*)
+(*NSolve[VLE\[Equal]ynumber,x]*)
+(*repeat until final x is less than or equal to xb*)
+
+(*count number of times loop runs*) 
+
+Plot[{feedline, enrichingline, strippingline, baseline, VLE}, {x, 0, 
+  1}]
+
+
+•Custom Q and R step value
