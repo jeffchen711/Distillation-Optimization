@@ -72,7 +72,8 @@ class Node {
 class NodeArray {
   private:
     Node **array;
-    float size;
+    Node **sortedArray;
+    long int size;
     double alpha;
     double zf;
     double xb;
@@ -90,11 +91,15 @@ class NodeArray {
         for (long int i=0; i<size; i++) {
             array[i] = NULL;
         }
+        sortedArray = new Node*[size];
+        for (long int i=0; i<size; i++) {
+        	sortedArray[i] = NULL;
+        }
     }
     
     void calc() {
         double q=0, R=0, Rmin=0, xC=0, yC=0, yInt=0;
-        long int index=0;
+        long int index=0, c=0;
         
         for (double q=0.20; q<=0.30; q+=0.01) {
             Rmin = -0.3297*pow(q,6) + 0.4896*pow(q,5) + 0.0707*pow(q,4) - 
@@ -106,13 +111,17 @@ class NodeArray {
                 R = Rmin * i;
                 //cout << "R = " << R << endl;
                 if (array[index]==NULL) {
-                    array[index] = new Node(q, Rmin, R, qDiff(q));
+                    //array[index] = new Node(q, Rmin, R, qDiff(q));
                     yInt = yIntersect(xd, LOverV(R)); //Enriching line intersects y-axis
                     xC = xCollision(q, xd, zf, yInt); //x-coord of collision
                     yC = yCollision(q, zf, xC); //y-coord of collision
                     //cout << "yInt = " << yInt << endl;
                     //cout << "x-collision = " << xC << ", y-collision = " << yC << endl;
-                    array[index]->setCount(count(alpha, xb, xd, xC, yC, yInt));
+                    c = count(alpha, xb, xd, xC, yC, yInt);
+                    //array[index]->setCount(count(alpha, xb, xd, xC, yC, yInt));
+                    if (c == 20) {
+                    	this->insert(q, Rmin, R, c, qDiff(q));
+                    }
                     index++;
                     //cout << endl;
                 }
@@ -229,22 +238,112 @@ class NodeArray {
     	long int points = 0;
         cout << "Printing..." << endl;
         for (long int i=0; i<size; i++) {
-            if (array[i]!=NULL && array[i]->getCount()==20) {
-                cout << "Q = " << array[i]->getQ() << ", ";
-                cout << "Rmin = " << array[i]->getRmin() << ", ";
-                cout << "R = " << array[i]->getR() << ", ";
-                cout << "qDiff = " << array[i]->getQDiff() << ", ";
-                cout << "Count = " << array[i]->getCount() << endl;
+            if (sortedArray[i]!=NULL && sortedArray[i]->getCount()==20) {
+                cout << "Q = " << sortedArray[i]->getQ() << ", ";
+                cout << "Rmin = " << sortedArray[i]->getRmin() << ", ";
+                cout << "R = " << sortedArray[i]->getR() << ", ";
+                cout << "qDiff = " << sortedArray[i]->getQDiff() << ", ";
+                cout << "Count = " << sortedArray[i]->getCount() << endl;
                 points++;
             }
-            else if (array[i]==NULL) {
+            else if (sortedArray[i]==NULL) {
                 cout << "End of array. " << points << " data points printed." << endl;
                 break;
             }
         }
         cout << endl;
     }
-    
+
+	int insert(double q, double rmin, double r, long int count, double qDiff) {
+        //Check if sortedArray is full
+        if (sortedArray[size-1]!=NULL) {
+            cout << "Error: sortedArray full; cannot insert qDiff " << qDiff << endl;
+            return 0;
+        }
+        //Loop to find insertion point
+        for (long int i=0; i<size; i++) {
+            //If no node with value greater than d was found,
+            //and if the current node has not been initialized.
+            //Create a new node with value d.
+            if (sortedArray[i] == NULL) {
+                sortedArray[i] = new Node(q, rmin, r, qDiff);
+                sortedArray[i]->setCount(count);
+                //cout << "qDiff " << qDiff << " inserted in index " << i << endl;
+                return 1;
+            }
+            //If node is not NULL but was previously deleted
+            /*else if (sortedArray[i]!=NULL && sortedArray[i]->getQDiff()==qDiff
+            			&& sortedArray[i]) {
+                sortedArray[i]->setQ(q);
+                sortedArray[i]->setRmin(rmin);
+                sortedArray[i]->setR(r);
+                sortedArray[i]->setCount(count);
+                sortedArray[i]->setQDiff(qDiff);
+                cout << "qDiff " << qDiff << " inserted" << endl;
+                return 1;
+            }*/
+            else if (sortedArray[i]!=NULL && (sortedArray[i]->getQDiff()==qDiff
+            			&& sortedArray[i]->getRmin()>rmin)) {
+                //Shift all nodes after index (i-1) right. Begin at penultimate node.
+                for (int j=size-2; j>=i; j--) {
+                	//Would only run on first loop.
+                    if (sortedArray[j]!=NULL && sortedArray[j+1]==NULL) {
+                        sortedArray[j+1] = new Node(sortedArray[j]->getQ(), sortedArray[j]->getRmin(),
+                        	sortedArray[j]->getR(), sortedArray[j]->getQDiff());
+                        sortedArray[j+1]->setCount(count);
+                    }
+                    //Shift node towards end.
+                    else if (sortedArray[j]!=NULL && sortedArray[j+1]!=NULL){
+                        sortedArray[j+1]->setQ(sortedArray[j]->getQ());
+		                sortedArray[j+1]->setRmin(sortedArray[j]->getRmin());
+		                sortedArray[j+1]->setR(sortedArray[j]->getR());
+		                sortedArray[j+1]->setQDiff(sortedArray[j]->getQDiff());
+                    }
+                }
+                sortedArray[i]->setQ(q);
+                sortedArray[i]->setRmin(rmin);
+                sortedArray[i]->setR(r);
+                sortedArray[i]->setCount(count);
+                sortedArray[i]->setQDiff(qDiff);
+                //cout << "qDiff " << qDiff << " inserted in index " << i << endl;
+                return 1;
+            }
+            //If value in index is greater than key, then key is not present - insert.
+            else if (sortedArray[i]!=NULL && (sortedArray[i]->getQDiff()>qDiff
+            			|| sortedArray[i]->getRmin()>rmin)) {
+                //Shift all nodes after index (i-1) right. Begin at penultimate node.
+                for (int j=size-2; j>=i; j--) {
+                	//Would only run on first loop.
+                    if (sortedArray[j]!=NULL && sortedArray[j+1]==NULL) {
+                        sortedArray[j+1] = new Node(sortedArray[j]->getQ(), sortedArray[j]->getRmin(),
+                        	sortedArray[j]->getR(), sortedArray[j]->getQDiff());
+                        sortedArray[j+1]->setCount(count);
+                    }
+                    //Shift node towards end.
+                    else if (sortedArray[j]!=NULL && sortedArray[j+1]!=NULL){
+                        sortedArray[j+1]->setQ(sortedArray[j]->getQ());
+		                sortedArray[j+1]->setRmin(sortedArray[j]->getRmin());
+		                sortedArray[j+1]->setR(sortedArray[j]->getR());
+		                sortedArray[j+1]->setQDiff(sortedArray[j]->getQDiff());
+                    }
+                }
+                //After all nodes have been shifted...
+                //i should be index of first node in sortedArray that was greater than d.
+                //Change values of this node.
+                sortedArray[i]->setQ(q);
+                sortedArray[i]->setRmin(rmin);
+                sortedArray[i]->setR(r);
+                sortedArray[i]->setCount(count);
+                sortedArray[i]->setQDiff(qDiff);
+                //cout << "qDiff " << qDiff << " inserted in index " << i << endl;
+                return 1;
+            }
+            
+        }
+        //If by some fluke the loop completes...
+        cout << "Error: Could not insert qDiff " << qDiff << endl;
+        return 0;
+    }
 };
 
 #endif
